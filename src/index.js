@@ -151,14 +151,18 @@ client.on("interactionCreate", async (interaction) => {
         content: `Removed role <@&${roleId}>`,
         ephemeral: true,
       });
-      console.log(`Removed role <@&${roleId}> from ${interaction.user.tag}`);
+      console.log(
+        `Removed role ${interaction.customId} from ${interaction.user.tag}`
+      );
     } else {
       await member.roles.add(roleId);
       await interaction.reply({
         content: `Added role <@&${roleId}>`,
         ephemeral: true,
       });
-      console.log(`Added role <@&${roleId}> for ${interaction.user.tag}`);
+      console.log(
+        `Added role ${interaction.customId} for ${interaction.user.tag}`
+      );
     }
   } catch (error) {
     console.error(error);
