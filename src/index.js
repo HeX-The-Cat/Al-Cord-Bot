@@ -73,7 +73,7 @@ client.on("interactionCreate", async (interaction) => {
             "Reminders for Operation Siren monthly reset for last 3 days of the month.",
         }
       )
-      .setColor(0x3498db);
+      .setColor(0x00d166);
 
     const roleGuildShopReminder = new ButtonBuilder()
       .setCustomId("roleGuildShopReminder")
@@ -94,11 +94,25 @@ client.on("interactionCreate", async (interaction) => {
       roleOpsiReminder
     );
 
+    //use this when you already have embed and copied the message ID to .env file
+    try {
+      const existingMessage = await channel.messages.fetch(
+        process.env.EMBED_ID.toString()
+      );
+      await existingMessage.edit({ embeds: [embed], components: [row] });
+      console.log("Updated existing embed.");
+    } catch (error) {
+      console.log("Failed to update existing embed");
+    }
+
+    // use this when you're making embed for first time
+    /*
     await interaction.channel.send({ embeds: [embed], components: [row] });
     await interaction.deleteReply();
     console.log(
       `Embedded roles to "${interaction.guild.name}" id: ${interaction.guild.id}, channel "${interaction.channel.name}" id: ${interaction.channel.id}`
     );
+    */
   }
 
   // ---- /logoutBot command ----
