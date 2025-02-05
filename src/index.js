@@ -128,9 +128,9 @@ client.on("interactionCreate", async (interaction) => {
 
   // Role IDs
   const roleIdMap = {
-    roleGuildShopReminder: "1157929080444948551",
-    roleWeekendReminder: "1157929261714386945",
-    roleOpsiReminder: "1157929315380510832",
+    roleGuildShopReminder: process.env.ROLE_GUILD_SHOP.toString(),
+    roleWeekendReminder: process.env.ROLE_WEEKEND.toString(),
+    roleOpsiReminder: process.env.ROLE_OPSI.toString(),
   };
 
   const roleId = roleIdMap[interaction.customId];
@@ -196,7 +196,7 @@ client.on("messageCreate", (message) => {
   }
 
   // hex specific commands
-  if (message.author.id === process.env.HEXID) {
+  if (message.author.id === process.env.ADMIN_USER_ID) {
     // clears 100 latest messages, mostly for test purposes, clean up test channel due to actual limitaitons of the func
     /*
         if (message.content === "!!clearchat") {
@@ -215,15 +215,15 @@ client.on("messageCreate", (message) => {
 
 // Roles for cront jobs
 
-const roleGuildShop = `<@&${"1157929080444948551"}>`;
-const roleWeekend = `<@&${"1157929261714386945"}>`;
-const roleOpSi = `<@&${"1157929315380510832"}>`;
+const roleGuildShop = `<@&${process.env.ROLE_GUILD_SHOP.toString()}>`;
+const roleWeekend = `<@&${process.env.ROLE_WEEKEND.toString()}>`;
+const roleOpSi = `<@&${process.env.ROLE_OPSI.toString()}>`;
 
 // CRON timers for AL cord
 
 // guild shop reset reminder
 const guildShopReminder = new cron.CronJob("0 10 * * 1,5", () => {
-  const channel = client.channels.cache.get(process.env.CHANNELID);
+  const channel = client.channels.cache.get(process.env.CHANNEL_ID);
   try {
     channel.send(`${roleGuildShop} Guild Shop has reset.`);
     console.log(
@@ -243,7 +243,7 @@ const guildShopReminder = new cron.CronJob("0 10 * * 1,5", () => {
 
 // weekly shop and task reminder
 const weekendReminder = new cron.CronJob("0 10 * * 0", () => {
-  const channel = client.channels.cache.get(process.env.CHANNELID);
+  const channel = client.channels.cache.get(process.env.CHANNEL_ID);
   try {
     channel.send(
       `${roleWeekend} Last day to claim your Weekly Supplies Pack and Weekly Mission Rewards.`
@@ -265,7 +265,7 @@ const weekendReminder = new cron.CronJob("0 10 * * 0", () => {
 
 // OpSi monthly reset reminder
 const opsiReminder = new cron.CronJob("0 10 * * *", () => {
-  const channel = client.channels.cache.get(process.env.CHANNELID);
+  const channel = client.channels.cache.get(process.env.CHANNEL_ID);
   const today = new Date();
   let oneAway = new Date();
   let twoAway = new Date();
@@ -319,7 +319,7 @@ const opsiReminder = new cron.CronJob("0 10 * * *", () => {
 const channelCleaner = new cron.CronJob("59 9 * * 1", () => {
   try {
     async function clearChat(numb) {
-      const channel = client.channels.cache.get(process.env.CHANNELID);
+      const channel = client.channels.cache.get(process.env.CHANNEL_ID);
       const messageManager = channel.messages;
       const messages = await messageManager.channel.messages.fetch({
         limit: numb,
