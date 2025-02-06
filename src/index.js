@@ -1,22 +1,31 @@
 require("dotenv").config();
-const {
-  Client,
-  IntentsBitField,
-  EmbedBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ActionRowBuilder,
-  SlashCommandBuilder,
-} = require("discord.js");
+const fs = require("fs");
+const { Client, IntentsBitField, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, SlashCommandBuilder } = require("discord.js");
 const cron = require("cron");
 
+const path = "./src/data.json";
+
+const readData = async () => {
+  try {
+    const data = await fs.promises.readFile(path, "utf8");
+    return JSON.parse(data); // Parse the JSON string and return it
+  } catch (err) {
+    console.error("Error reading file:", err);
+    return null;
+  }
+};
+
+const writeData = async (data) => {
+  try {
+    await fs.promises.writeFile(path, JSON.stringify(data, null, 2), "utf8");
+    console.log("Data updated successfully.");
+  } catch (err) {
+    console.error("Error writing to file:", err);
+  }
+};
+
 const client = new Client({
-  intents: [
-    IntentsBitField.Flags.Guilds,
-    IntentsBitField.Flags.GuildMembers,
-    IntentsBitField.Flags.GuildMessages,
-    IntentsBitField.Flags.MessageContent,
-  ],
+  intents: [IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildMembers, IntentsBitField.Flags.GuildMessages, IntentsBitField.Flags.MessageContent],
 });
 
 // on initialization
@@ -27,12 +36,8 @@ client.on("ready", async () => {
   const guild = client.guilds.cache.get(process.env.GUILD_ID);
   if (guild) {
     await guild.commands.set([
-      new SlashCommandBuilder()
-        .setName("roles")
-        .setDescription("Send or edit the role selection embed on this channel"),
-      new SlashCommandBuilder()
-        .setName("logoutbot")
-        .setDescription("Log out the bot"),
+      new SlashCommandBuilder().setName("roles").setDescription("Send or edit the role selection embed on this channel"),
+      new SlashCommandBuilder().setName("logoutbot").setDescription("Log out the bot"),
     ]);
     console.log("Slash commands registered.");
   }
@@ -54,6 +59,14 @@ client.on("interactionCreate", async (interaction) => {
 
     await interaction.deferReply({ ephemeral: true }); // Prevents the "bot is thinking..." response
 
+    // Read current data from JSON
+    const data = await readData();
+    if (!data) {
+      console.log("Failed to fetch data");
+      return;
+    }
+
+    // Embed setup
     const embed = new EmbedBuilder()
       .setTitle("Smol Bluebirb's notification role selection:")
       .setDescription("Choose what you'd like to get notified for!")
@@ -64,56 +77,46 @@ client.on("interactionCreate", async (interaction) => {
         },
         {
           name: "Weekend Claims Reminder",
-          value:
-            "Sunday reminder to claim your weekly supplies pack and task rewards before weekly reset.",
+          value: "Sunday reminder to claim your weekly supplies pack and task rewards before weekly reset.",
         },
         {
           name: "Operation Siren Reset Reminder",
-          value:
-            "Reminders for Operation Siren monthly reset for last 3 days of the month.",
+          value: "Reminders for Operation Siren monthly reset for last 3 days of the month.",
         }
       )
-      .setColor(0x008E44);
+      .setColor(0x008e44);
 
-    const roleGuildShopReminder = new ButtonBuilder()
-      .setCustomId("roleGuildShopReminder")
-      .setLabel("Guild Shop Reminder")
-      .setStyle(ButtonStyle.Secondary);
-    const roleWeekendReminder = new ButtonBuilder()
-      .setCustomId("roleWeekendReminder")
-      .setLabel("Weekend Reminder")
-      .setStyle(ButtonStyle.Secondary);
-    const roleOpsiReminder = new ButtonBuilder()
-      .setCustomId("roleOpsiReminder")
-      .setLabel("OpSi Reminder")
-      .setStyle(ButtonStyle.Secondary);
+    // Buttons setup for the Embed
+    const roleGuildShopReminder = new ButtonBuilder().setCustomId("roleGuildShopReminder").setLabel("Guild Shop Reminder").setStyle(ButtonStyle.Secondary);
+    const roleWeekendReminder = new ButtonBuilder().setCustomId("roleWeekendReminder").setLabel("Weekend Reminder").setStyle(ButtonStyle.Secondary);
+    const roleOpsiReminder = new ButtonBuilder().setCustomId("roleOpsiReminder").setLabel("OpSi Reminder").setStyle(ButtonStyle.Secondary);
 
-    const row = new ActionRowBuilder().addComponents(
-      roleGuildShopReminder,
-      roleWeekendReminder,
-      roleOpsiReminder
-    );
+    const row = new ActionRowBuilder().addComponents(roleGuildShopReminder, roleWeekendReminder, roleOpsiReminder);
 
-    //use this when you already have embed and copied the message ID to .env file
-    try {
-      const existingMessage = await interaction.channel.messages.fetch(
-        process.env.EMBED_ID
+    const channel = interaction.channel;
+
+    // If embed ID exists, update the existing message
+    if (data.embed) {
+      try {
+        const existingMessage = await channel.messages.fetch(data.embed);
+        await existingMessage.edit({ embeds: [embed], components: [row] });
+        console.log("Updated existing roles selection embed.");
+      } catch (error) {
+        console.log("Failed to find or update existing embed, sending a new one.");
+        const sentMessage = await channel.send({ embeds: [embed], components: [row] });
+        data.embed = sentMessage.id; // Store the new message ID in the JSON file
+        await writeData(data); // Update the JSON file with the new embed ID
+      }
+    } else {
+      // If no embed ID exists, send a new embed and save the ID
+      const sentMessage = await channel.send({ embeds: [embed], components: [row] });
+      data.embed = sentMessage.id;
+      await writeData(data);
+      console.log(
+        `Embedded roles selection to "${interaction.guild.name}" id: ${interaction.guild.id}, channel "${interaction.channel.name}" id: ${interaction.channel.id}`
       );
-      await existingMessage.edit({ embeds: [embed], components: [row] });
-      console.log("Updated existing embed.");
-    } catch (error) {
-      console.log("Failed to update existing embed");
-      console.log(error.message);
     }
-
-    // use this when you're making embed for first time
-    /*
-    await interaction.channel.send({ embeds: [embed], components: [row] });
-    await interaction.deleteReply();
-    console.log(
-      `Embedded roles to "${interaction.guild.name}" id: ${interaction.guild.id}, channel "${interaction.channel.name}" id: ${interaction.channel.id}`
-    );
-    */
+    await interaction.deleteReply(); // Hide the slash command reply
   }
 
   // ---- /logoutBot command ----
@@ -166,18 +169,14 @@ client.on("interactionCreate", async (interaction) => {
         content: `Removed role <@&${roleId}>`,
         ephemeral: true,
       });
-      console.log(
-        `Removed role ${interaction.customId} from ${interaction.user.tag}`
-      );
+      console.log(`Removed role ${interaction.customId} from ${interaction.user.tag}`);
     } else {
       await member.roles.add(roleId);
       await interaction.reply({
         content: `Added role <@&${roleId}>`,
         ephemeral: true,
       });
-      console.log(
-        `Added role ${interaction.customId} for ${interaction.user.tag}`
-      );
+      console.log(`Added role ${interaction.customId} for ${interaction.user.tag}`);
     }
   } catch (error) {
     console.error(error);
@@ -230,9 +229,9 @@ client.on("messageCreate", (message) => {
 
 // Roles for cront jobs
 
-const roleGuildShop = `<@&${process.env.ROLE_GUILD_SHOP}>`;
-const roleWeekend = `<@&${process.env.ROLE_WEEKEND}>`;
-const roleOpSi = `<@&${process.env.ROLE_OPSI}>`;
+const roleGuildShop = process.env.ROLE_GUILD_SHOP;
+const roleWeekend = process.env.ROLE_WEEKEND;
+const roleOpSi = process.env.ROLE_OPSI;
 
 // CRON timers for AL cord
 
@@ -240,18 +239,10 @@ const roleOpSi = `<@&${process.env.ROLE_OPSI}>`;
 const guildShopReminder = new cron.CronJob("0 10 * * 1,5", () => {
   const channel = client.channels.cache.get(process.env.NOTIFICATION_CHANNEL_ID);
   try {
-    channel.send(`${roleGuildShop} Guild Shop has reset.`);
-    console.log(
-      `guildShopReminder run ${date.getDate()}.${
-        date.getMonth() + 1
-      }.${date.getFullYear()}`
-    );
+    channel.send(`<@&${roleGuildShop}> Guild Shop has reset.`);
+    console.log(`guildShopReminder run ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
   } catch (error) {
-    console.log(
-      `Failed to run guildShopReminder ${date.getDate()}.${
-        date.getMonth() + 1
-      }.${date.getFullYear()}`
-    );
+    console.log(`Failed to run guildShopReminder ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
     console.log(error.message);
   }
 });
@@ -260,20 +251,10 @@ const guildShopReminder = new cron.CronJob("0 10 * * 1,5", () => {
 const weekendReminder = new cron.CronJob("0 10 * * 0", () => {
   const channel = client.channels.cache.get(process.env.NOTIFICATION_CHANNEL_ID);
   try {
-    channel.send(
-      `${roleWeekend} Last day to claim your Weekly Supplies Pack and Weekly Mission Rewards.`
-    );
-    console.log(
-      `weekendReminder run ${date.getDate()}.${
-        date.getMonth() + 1
-      }.${date.getFullYear()}`
-    );
+    channel.send(`<@&${roleWeekend}> Last day to claim your Weekly Supplies Pack and Weekly Mission Rewards!`);
+    console.log(`weekendReminder run ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
   } catch (error) {
-    console.log(
-      `Failed to run weekendReminder ${date.getDate()}.${
-        date.getMonth() + 1
-      }.${date.getFullYear()}`
-    );
+    console.log(`Failed to run weekendReminder ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
     console.log(error.message);
   }
 });
@@ -291,41 +272,19 @@ const opsiReminder = new cron.CronJob("0 10 * * *", () => {
 
   try {
     if (today.getMonth() != oneAway.getMonth()) {
-      channel.send(`${roleOpSi} Last day until Operation Siren monthly reset!`);
-      console.log(
-        `opsiReminder1 run ${date.getDate()}.${
-          date.getMonth() + 1
-        }.${date.getFullYear()}`
-      );
+      channel.send(`<@&${roleOpSi}> Last day until Operation Siren monthly reset!`);
+      console.log(`opsiReminder1 run ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
     }
-    if (
-      today.getMonth() != twoAway.getMonth() &&
-      today.getMonth() == oneAway.getMonth()
-    ) {
-      channel.send(`${roleOpSi} 2 days until Operation Siren monthly reset.`);
-      console.log(
-        `opsiReminder2 run ${date.getDate()}.${
-          date.getMonth() + 1
-        }.${date.getFullYear()}`
-      );
+    if (today.getMonth() != twoAway.getMonth() && today.getMonth() == oneAway.getMonth()) {
+      channel.send(`<@&${roleOpSi}> 2 days until Operation Siren monthly reset.`);
+      console.log(`opsiReminder2 run ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
     }
-    if (
-      today.getMonth() != threeAway.getMonth() &&
-      today.getMonth() == twoAway.getMonth()
-    ) {
-      channel.send(`${roleOpSi} 3 days until Operation Siren monthly reset.`);
-      console.log(
-        `opsiReminder3 run ${date.getDate()}.${
-          date.getMonth() + 1
-        }.${date.getFullYear()}`
-      );
+    if (today.getMonth() != threeAway.getMonth() && today.getMonth() == twoAway.getMonth()) {
+      channel.send(`<@&${roleOpSi}> 3 days until Operation Siren monthly reset.`);
+      console.log(`opsiReminder3 run ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
     }
   } catch (error) {
-    console.log(
-      `Failed to run opsiReminder ${date.getDate()}.${
-        date.getMonth() + 1
-      }.${date.getFullYear()}`
-    );
+    console.log(`Failed to run opsiReminder ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
     console.log(error.message);
   }
 });
@@ -343,17 +302,9 @@ const channelCleaner = new cron.CronJob("59 9 * * 1", () => {
     }
 
     clearChat(10);
-    console.log(
-      `channelCleaner run ${date.getDate()}.${
-        date.getMonth() + 1
-      }.${date.getFullYear()}`
-    );
+    console.log(`channelCleaner run ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
   } catch (error) {
-    console.log(
-      `Failed to run channelCleaner ${date.getDate()}.${
-        date.getMonth() + 1
-      }.${date.getFullYear()}`
-    );
+    console.log(`Failed to run channelCleaner ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
     console.log(error.message);
   }
 });
