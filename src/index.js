@@ -29,7 +29,7 @@ client.on("ready", async () => {
     await guild.commands.set([
       new SlashCommandBuilder()
         .setName("roles")
-        .setDescription("Sends the role selection embed"),
+        .setDescription("Send or edit the role selection embed on this channel"),
       new SlashCommandBuilder()
         .setName("logoutbot")
         .setDescription("Log out the bot"),
@@ -73,7 +73,7 @@ client.on("interactionCreate", async (interaction) => {
             "Reminders for Operation Siren monthly reset for last 3 days of the month.",
         }
       )
-      .setColor(0x00d166);
+      .setColor(0x008E44);
 
     const roleGuildShopReminder = new ButtonBuilder()
       .setCustomId("roleGuildShopReminder")
@@ -96,13 +96,14 @@ client.on("interactionCreate", async (interaction) => {
 
     //use this when you already have embed and copied the message ID to .env file
     try {
-      const existingMessage = await channel.messages.fetch(
-        process.env.EMBED_ID.toString()
+      const existingMessage = await interaction.channel.messages.fetch(
+        process.env.EMBED_ID
       );
       await existingMessage.edit({ embeds: [embed], components: [row] });
       console.log("Updated existing embed.");
     } catch (error) {
       console.log("Failed to update existing embed");
+      console.log(error.message);
     }
 
     // use this when you're making embed for first time
@@ -142,9 +143,9 @@ client.on("interactionCreate", async (interaction) => {
 
   // Role IDs
   const roleIdMap = {
-    roleGuildShopReminder: process.env.ROLE_GUILD_SHOP.toString(),
-    roleWeekendReminder: process.env.ROLE_WEEKEND.toString(),
-    roleOpsiReminder: process.env.ROLE_OPSI.toString(),
+    roleGuildShopReminder: process.env.ROLE_GUILD_SHOP,
+    roleWeekendReminder: process.env.ROLE_WEEKEND,
+    roleOpsiReminder: process.env.ROLE_OPSI,
   };
 
   const roleId = roleIdMap[interaction.customId];
@@ -229,15 +230,15 @@ client.on("messageCreate", (message) => {
 
 // Roles for cront jobs
 
-const roleGuildShop = `<@&${process.env.ROLE_GUILD_SHOP.toString()}>`;
-const roleWeekend = `<@&${process.env.ROLE_WEEKEND.toString()}>`;
-const roleOpSi = `<@&${process.env.ROLE_OPSI.toString()}>`;
+const roleGuildShop = `<@&${process.env.ROLE_GUILD_SHOP}>`;
+const roleWeekend = `<@&${process.env.ROLE_WEEKEND}>`;
+const roleOpSi = `<@&${process.env.ROLE_OPSI}>`;
 
 // CRON timers for AL cord
 
 // guild shop reset reminder
 const guildShopReminder = new cron.CronJob("0 10 * * 1,5", () => {
-  const channel = client.channels.cache.get(process.env.CHANNEL_ID);
+  const channel = client.channels.cache.get(process.env.NOTIFICATION_CHANNEL_ID);
   try {
     channel.send(`${roleGuildShop} Guild Shop has reset.`);
     console.log(
@@ -257,7 +258,7 @@ const guildShopReminder = new cron.CronJob("0 10 * * 1,5", () => {
 
 // weekly shop and task reminder
 const weekendReminder = new cron.CronJob("0 10 * * 0", () => {
-  const channel = client.channels.cache.get(process.env.CHANNEL_ID);
+  const channel = client.channels.cache.get(process.env.NOTIFICATION_CHANNEL_ID);
   try {
     channel.send(
       `${roleWeekend} Last day to claim your Weekly Supplies Pack and Weekly Mission Rewards.`
@@ -279,7 +280,7 @@ const weekendReminder = new cron.CronJob("0 10 * * 0", () => {
 
 // OpSi monthly reset reminder
 const opsiReminder = new cron.CronJob("0 10 * * *", () => {
-  const channel = client.channels.cache.get(process.env.CHANNEL_ID);
+  const channel = client.channels.cache.get(process.env.NOTIFICATION_CHANNEL_ID);
   const today = new Date();
   let oneAway = new Date();
   let twoAway = new Date();
@@ -333,7 +334,7 @@ const opsiReminder = new cron.CronJob("0 10 * * *", () => {
 const channelCleaner = new cron.CronJob("59 9 * * 1", () => {
   try {
     async function clearChat(numb) {
-      const channel = client.channels.cache.get(process.env.CHANNEL_ID);
+      const channel = client.channels.cache.get(process.env.NOTIFICATION_CHANNEL_ID);
       const messageManager = channel.messages;
       const messages = await messageManager.channel.messages.fetch({
         limit: numb,
