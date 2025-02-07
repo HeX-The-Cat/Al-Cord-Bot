@@ -237,24 +237,26 @@ const roleOpSi = process.env.ROLE_OPSI;
 
 // guild shop reset reminder
 const guildShopReminder = new cron.CronJob("0 10 * * 1,5", () => {
+  const today = new Date();
   const channel = client.channels.cache.get(process.env.NOTIFICATION_CHANNEL_ID);
   try {
     channel.send(`<@&${roleGuildShop}> Guild Shop has reset.`);
-    console.log(`guildShopReminder run ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
+    console.log(`guildShopReminder run ${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`);
   } catch (error) {
-    console.log(`Failed to run guildShopReminder ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
+    console.log(`Failed to run guildShopReminder ${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`);
     console.log(error.message);
   }
 });
 
 // weekly shop and task reminder
 const weekendReminder = new cron.CronJob("0 10 * * 0", () => {
+  const today = new Date();
   const channel = client.channels.cache.get(process.env.NOTIFICATION_CHANNEL_ID);
   try {
     channel.send(`<@&${roleWeekend}> Last day to claim your Weekly Supplies Pack and Weekly Mission Rewards!`);
-    console.log(`weekendReminder run ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
+    console.log(`weekendReminder run ${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`);
   } catch (error) {
-    console.log(`Failed to run weekendReminder ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
+    console.log(`Failed to run weekendReminder ${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`);
     console.log(error.message);
   }
 });
@@ -273,24 +275,25 @@ const opsiReminder = new cron.CronJob("0 10 * * *", () => {
   try {
     if (today.getMonth() != oneAway.getMonth()) {
       channel.send(`<@&${roleOpSi}> Last day until Operation Siren monthly reset!`);
-      console.log(`opsiReminder1 run ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
+      console.log(`opsiReminder1 run ${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`);
     }
     if (today.getMonth() != twoAway.getMonth() && today.getMonth() == oneAway.getMonth()) {
       channel.send(`<@&${roleOpSi}> 2 days until Operation Siren monthly reset.`);
-      console.log(`opsiReminder2 run ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
+      console.log(`opsiReminder2 run ${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`);
     }
     if (today.getMonth() != threeAway.getMonth() && today.getMonth() == twoAway.getMonth()) {
       channel.send(`<@&${roleOpSi}> 3 days until Operation Siren monthly reset.`);
-      console.log(`opsiReminder3 run ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
+      console.log(`opsiReminder3 run ${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`);
     }
   } catch (error) {
-    console.log(`Failed to run opsiReminder ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
+    console.log(`Failed to run opsiReminder ${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`);
     console.log(error.message);
   }
 });
 
 // clears chat every monday before daily reset
 const channelCleaner = new cron.CronJob("59 9 * * 1", () => {
+  const today = new Date();
   try {
     async function clearChat(numb) {
       const channel = client.channels.cache.get(process.env.NOTIFICATION_CHANNEL_ID);
@@ -302,9 +305,9 @@ const channelCleaner = new cron.CronJob("59 9 * * 1", () => {
     }
 
     clearChat(10);
-    console.log(`channelCleaner run ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
+    console.log(`channelCleaner run ${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`);
   } catch (error) {
-    console.log(`Failed to run channelCleaner ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`);
+    console.log(`Failed to run channelCleaner ${today.getDate()}.${today.getMonth() + 1}.${today.getFullYear()}`);
     console.log(error.message);
   }
 });
